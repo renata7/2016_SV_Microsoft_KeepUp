@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+ <head>
+	<title>Geocoding service</title>
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+	<meta charset="utf-8">
+
+	<style>
+		html, body {
+			height: 100%;
+			margin: 0;
+			padding-top: 0px;
+		}
+		#map {
+			height: 600px;
+		}
+		#floating-panel {
+			
+			top: 10px;
+			left: 15%;
+			z-index: 5;
+			background-color: #fff;
+			padding: 5px;
+			text-align: center;
+			font-family: 'Roboto', 'sans-serif';
+			line-height: 30px;
+			padding-left: 10px;
+		}
+		
+		 ul.topnav{
+           list-style-type:none; 
+           margin:0;
+           padding:0; 
+           overflow: hidden; 
+           background-color:#A79C88; 
+		}
+        ul.topnav li { float: left;}
+        ul.topnav li a{
+           display: inline-block;
+           color:aliceblue;
+           text-align: center;
+           padding: 14px 16px; 
+           text-decoration: 0.3s;
+           font-size: 17px;       
+        }
+        ul.topnav li a:hover{ background-color: #B9AE9C;}
+        ul.topnav li.icon{ display: none;}
+        @media screen and( max-width:680px){
+            ul.topnav.responsive {
+			position:relative;
+			}
+            ul.topnav.responsive li.icon{
+               position: absolute;
+               right:0''
+               top:0;         
+            }
+            ul.topnav.responsive li{
+               float:none; 
+               display: inline; 
+            }
+            ul.topnave.responsive li a {
+               display:block;
+               text-align:left;
+            }
+            ul.topnav.responsive li a{
+               display: block; 
+               text-align:left;
+           }
+           
+       }
+
+	</style>
+ </head>
+ <body>
+	<ul class="topnav" id="myTopnav">
+		<li><A HREF="final_homepage_and_nav_bar.html"<a class="active" href="home">Homepage</a></li> 
+		<li><A HREF="studyLocationsMap.html"<a class="active" href="home">Map</a></li> 
+		<li><A HREF="resources.html"<a class="active" href="home">Study Resources</a></li>  		
+	</ul>       
+
+
+	
+	<div id= "floating-panel">
+	<input id= "address" type= "textbox" value= "">
+	<input id= "submit" type= "button" value= "StudySpot Me" >
+	<div id="checkbox">
+		<input type="checkbox" id="quiet"> Library
+		<input type="checkbox" id="coffee"> Coffee
+	</div>
+	</div> 
+	
+	<p></p>
+	
+	<div id= "map"> </div>
+	<script>
+		var infowindow;
+		var map;
+		
+		var markers= [];
+
+
+		var showCafe = document.getElementById("coffee");
+		var showLibrary = document.getElementById("quiet");
+	
+
+		function initMap(){
+			map= new google.maps.Map(document.getElementById('map'), {
+			zoom: 8,
+			center: {lat: 37.431251, lng: -121.993046}
+			});
+
+			infowindow = new google.maps.InfoWindow();
+
+			var geocoder = new google.maps.Geocoder();
+			
+			document.getElementById('submit').addEventListener('click', function() {
+				geocodeAddress(geocoder, map);
+			});
+			
+			document.getElementById("address").addEventListener('keyup', function() {
+				if (event.keyCode == 13) {
+					geocodeAddress(geocoder, map);
+				}
+			});
+		}
+		
+		function clearMarkers() {
+			setMapOnAll(null);
+		}
+		
+		function setMapOnAll(map) {
+			for (var i = 0; i < markers.length; i++) {
+			  markers[i].setMap(map);
+			}
+		}
+
+		function geocodeAddress(geocoder, resultsMap){
+			var address = document.getElementById('address').value;
+			geocoder.geocode({'address':address}, function(results,status){
+			if (status === 'OK') {
+				clearMarkers();
+				markers = [];
+				
+				map = resultsMap;
+				map.setCenter(results[0].geometry.location);
+				var star = {
+					url: 'http://images.clipartpanda.com/gold-star-clipart-biypAKEiL.png',
+					scaledSize: new google.maps.Size(40, 40), 
+					origin: new google.maps.Point(0, 0),
+					anchor: new google.maps.Point(20, 20)
+				};
+				var homeMarker = new google.maps.Marker({
+					position: results[0].geometry.location,
+					map: map,
+					icon: star
+				});
+				markers.push(homeMarker);
+			
+				var service = new google.maps.places.PlacesService(map);
+				
+				if (showCafe.checked==true){
+					service.nearbySearch({
+					location: results[0].geometry.location,
+					radius: 5000,
+					type: ['cafe']
+					}, cafeCallback);
+				}
+				if (showLibrary.checked==true){
+				   service.nearbySearch({
+					location: results[0].geometry.location,
+					radius: 5000,
+					type: ['library']
+				   }, libraryCallback);
+				}
+				
+				else if (showCafe.checked!=true && showLibrary.checked!=true){
+					service.nearbySearch({
+					location: results[0].geometry.location,
+					radius: 5000,
+					type: ['cafe']
+					}, cafeCallback);
+					service.nearbySearch({
+					location: results[0].geometry.location,
+					radius: 5000,
+					type: ['library']
+				   }, libraryCallback);	
+				}
+				
+			  
+			} 
+			else {
+				alert('Geocode was not successful for the following reason: ' + status); 
+			 }
+			});
+		}
+
+		function cafeCallback(results, status) {
+			console.log(results);
+			if (status === google.maps.places.PlacesServiceStatus.OK) {
+				for (var i = 0; i < results.length; i++) {
+					createCafeMarker(results[i]);
+				}
+				map.setZoom(13);
+			}
+		}
+		
+		function libraryCallback(results, status) {
+			// console.log(results);
+			if (status === google.maps.places.PlacesServiceStatus.OK) {
+				for (var i = 0; i < results.length; i++) {
+					createLibraryMarker(results[i]);
+				}
+				map.setZoom(13);
+			}
+		}
+		
+	   	function createCafeMarker(place) {
+			var placeLoc = place.geometry.location;
+			var coffee_image = {
+				url: 'http://mangoseed.com/wp-content/themes/petrichor/images/widget-icons/coffee.png',
+				// This marker is 20 pixels wide by 32 pixels high.
+				scaledSize: new google.maps.Size(40, 40), 
+				// The origin for this image is (0, 0).
+				origin: new google.maps.Point(0, 0),
+				// The anchor for this image is the base of the flagpole at (0, 32).
+				anchor: new google.maps.Point(20, 20)
+			};
+
+			var marker = new google.maps.Marker({
+				position: place.geometry.location,
+				map: map,
+				icon: coffee_image,
+			});
+		 
+			markers.push(marker);
+		
+			var request = {reference: place.reference};
+			var service = new google.maps.places.PlacesService(map);
+			service.getDetails(request, function(details, status){
+				google.maps.event.addListener(marker, 'click', function() {
+				infowindow.setContent('<div><strong>' + place.name + '</strong><br>' + place.vicinity + '</div>');
+				infowindow.open(map, this);
+				});
+			});
+		}
+		
+		function createLibraryMarker(place) {
+			var placeLoc = place.geometry.location;
+			var book_pic = {
+				url: 'http://www.bradleysbookoutlet.com/wp-content/uploads/2013/06/bradleys-book-outlet-books-only-logo.png',
+				scaledSize: new google.maps.Size(40,40),
+				origin: new google.maps.Point(0,0),
+				anchor: new google.maps.Point(20,20)
+			};
+
+			var marker = new google.maps.Marker({
+				position: place.geometry.location,
+				map: map,
+				icon: book_pic,
+			});
+			markers.push(marker);
+
+			var request = {reference: place.reference};
+			var service = new google.maps.places.PlacesService(map);
+			service.getDetails(request, function(details, status){
+				google.maps.event.addListener(marker, 'click', function() {
+				infowindow.setContent('<div><strong>' + place.name + '</strong><br>' + place.vicinity + '</div>');
+				infowindow.open(map, this);
+				});
+			});
+		}
+	</script> 
+	<script async defer
+	src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBOOeXFxypKipFGKEGuFrwC3sGaJVDLLuM&libraries=places&callback=initMap">
+	</script>
+ </body>
+</html>
+
